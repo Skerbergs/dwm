@@ -4,7 +4,10 @@ dwm is a dynamic window manager for X. It manages windows in tiled, monocle and 
 
 This is the custom setup of dwm I use on my FreeBSD computer.
 ## Switching themes
-At the start of config.def.h, include your desired theme from the themes folder. After that comment out the following lines:
+At the start of config.def.h, include your desired theme from the themes folder. Example:
+`#include "/home/freddy/suckless/dwm/themes/gruvbox.h"`
+
+After that comment out the following lines:
 ```C
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
