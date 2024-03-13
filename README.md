@@ -2,7 +2,7 @@
 ## About
 dwm is a dynamic window manager for X. It manages windows in tiled, monocle and floating layouts. All of the layouts can be applied dynamically, optimising the environment for the application in use and the task performed.
 
-This is the custom setup of dwm I use on my FreeBSD computer.
+This is the custom setup of dwm I use on my computer.
 ## Switching themes
 At the start of config.def.h, include your desired theme from the themes folder. Example:
 `#include "/home/freddy/suckless/dwm/themes/gruvbox.h"`
