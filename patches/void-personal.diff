@@ -1,5 +1,5 @@
 diff --git a/config.def.h b/config.def.h
-index 9efa774..88b2fb9 100644
+index 9efa774..d719dda 100644
 --- a/config.def.h
 +++ b/config.def.h
 @@ -1,17 +1,20 @@
@@ -10,7 +10,7 @@ index 9efa774..88b2fb9 100644
  /* appearance */
 -static const unsigned int borderpx  = 1;        /* border pixel of windows */
 +static const unsigned int borderpx  = 3;        /* border pixel of windows */
-+static const unsigned int gappx     = 10;        /* gaps between windows */
++static const unsigned int gappx     = 10;       /* gaps between windows */
  static const unsigned int snap      = 32;       /* snap pixel */
  static const int showbar            = 1;        /* 0 means no bar */
 -static const int topbar             = 1;        /* 0 means bottom bar */
@@ -29,7 +29,7 @@ index 9efa774..88b2fb9 100644
  static const char *colors[][3]      = {
  	/*               fg         bg         border   */
  	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-@@ -19,7 +22,7 @@ static const char *colors[][3]      = {
+@@ -19,35 +22,38 @@ static const char *colors[][3]      = {
  };
  
  /* tagging */
@@ -38,7 +38,17 @@ index 9efa774..88b2fb9 100644
  
  static const Rule rules[] = {
  	/* xprop(1):
-@@ -34,20 +37,23 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class          instance    title       tags mask     switchtotag    isfloating   monitor */
++	{ "mpv",          NULL,       NULL,       1 << 3,       1,             0,           -1 },
++	{ "qutebrowser",  NULL,       NULL,       1 << 2,       1,             0,           -1 },
+ };
+ 
  /* layout(s) */
  static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
  static const int nmaster     = 1;    /* number of clients in master area */
@@ -60,9 +70,8 @@ index 9efa774..88b2fb9 100644
  #define MODKEY Mod1Mask
 +#define SUPERKEY Mod4Mask
  #define TAGKEYS(KEY,TAG) \
--	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
-+	{ MODKEY,                       KEY,      viewall,        {.ui = 1 << TAG} }, \
-+	{ MODKEY|SUPERKEY,              KEY,      view,           {.ui = 1 << TAG} }, \
+ 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
++	{ MODKEY|SUPERKEY,              KEY,      viewall,        {.ui = 1 << TAG} }, \
  	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
  	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
  	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
@@ -125,7 +134,7 @@ index ddc8321..02f6ca0 100644
  dwm is customized by creating a custom config.h and (re)compiling the source
  code. This keeps it fast, secure and simple.
 diff --git a/dwm.c b/dwm.c
-index f1d86b2..ddd45a8 100644
+index f1d86b2..5c37e41 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -29,6 +29,7 @@
@@ -147,7 +156,23 @@ index f1d86b2..ddd45a8 100644
  #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
  #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
  
-@@ -147,6 +148,7 @@ static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interac
+@@ -92,6 +93,7 @@ struct Client {
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
+ 	int bw, oldbw;
+ 	unsigned int tags;
++	unsigned int switchtotag;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+ 	Client *next;
+ 	Client *snext;
+@@ -137,6 +139,7 @@ typedef struct {
+ 	const char *instance;
+ 	const char *title;
+ 	unsigned int tags;
++	unsigned int switchtotag;
+ 	int isfloating;
+ 	int monitor;
+ } Rule;
+@@ -147,6 +150,7 @@ static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interac
  static void arrange(Monitor *m);
  static void arrangemon(Monitor *m);
  static void attach(Client *c);
@@ -155,7 +180,7 @@ index f1d86b2..ddd45a8 100644
  static void attachstack(Client *c);
  static void buttonpress(XEvent *e);
  static void checkotherwm(void);
-@@ -194,6 +196,7 @@ static void resizeclient(Client *c, int x, int y, int w, int h);
+@@ -194,6 +198,7 @@ static void resizeclient(Client *c, int x, int y, int w, int h);
  static void resizemouse(const Arg *arg);
  static void restack(Monitor *m);
  static void run(void);
@@ -163,7 +188,7 @@ index f1d86b2..ddd45a8 100644
  static void scan(void);
  static int sendevent(Client *c, Atom proto);
  static void sendmon(Client *c, Monitor *m);
-@@ -227,6 +230,7 @@ static void updatetitle(Client *c);
+@@ -227,6 +232,7 @@ static void updatetitle(Client *c);
  static void updatewindowtype(Client *c);
  static void updatewmhints(Client *c);
  static void view(const Arg *arg);
@@ -171,7 +196,7 @@ index f1d86b2..ddd45a8 100644
  static Client *wintoclient(Window w);
  static Monitor *wintomon(Window w);
  static int xerror(Display *dpy, XErrorEvent *ee);
-@@ -235,7 +239,11 @@ static int xerrorstart(Display *dpy, XErrorEvent *ee);
+@@ -235,7 +241,11 @@ static int xerrorstart(Display *dpy, XErrorEvent *ee);
  static void zoom(const Arg *arg);
  
  /* variables */
@@ -183,7 +208,19 @@ index f1d86b2..ddd45a8 100644
  static char stext[256];
  static int screen;
  static int sw, sh;           /* X display screen geometry width, height */
-@@ -407,6 +415,21 @@ attach(Client *c)
+@@ -302,6 +312,11 @@ applyrules(Client *c)
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
++			if (r->switchtotag) {
++				Arg a = { .ui = r->tags };
++				c->switchtotag = selmon->tagset[selmon->seltags];
++				view(&a);
++			}
+ 		}
+ 	}
+ 	if (ch.res_class)
+@@ -407,6 +422,21 @@ attach(Client *c)
  	c->next = c->mon->clients;
  	c->mon->clients = c;
  }
@@ -205,7 +242,7 @@ index f1d86b2..ddd45a8 100644
  
  void
  attachstack(Client *c)
-@@ -1068,13 +1091,18 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1068,13 +1098,18 @@ manage(Window w, XWindowAttributes *wa)
  	updatewindowtype(c);
  	updatesizehints(c);
  	updatewmhints(c);
@@ -225,7 +262,7 @@ index f1d86b2..ddd45a8 100644
  	attachstack(c);
  	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
  		(unsigned char *) &(c->win), 1);
-@@ -1286,12 +1314,36 @@ void
+@@ -1286,12 +1321,36 @@ void
  resizeclient(Client *c, int x, int y, int w, int h)
  {
  	XWindowChanges wc;
@@ -266,7 +303,7 @@ index f1d86b2..ddd45a8 100644
  	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
  	configure(c);
  	XSync(dpy, False);
-@@ -1390,6 +1442,83 @@ run(void)
+@@ -1390,6 +1449,83 @@ run(void)
  			handler[ev.type](&ev); /* call handler */
  }
  
@@ -350,7 +387,7 @@ index f1d86b2..ddd45a8 100644
  void
  scan(void)
  {
-@@ -1427,7 +1556,10 @@ sendmon(Client *c, Monitor *m)
+@@ -1427,7 +1563,10 @@ sendmon(Client *c, Monitor *m)
  	detachstack(c);
  	c->mon = m;
  	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
@@ -362,7 +399,7 @@ index f1d86b2..ddd45a8 100644
  	attachstack(c);
  	focus(NULL);
  	arrange(NULL);
-@@ -1701,7 +1833,7 @@ tile(Monitor *m)
+@@ -1701,7 +1840,7 @@ tile(Monitor *m)
  	for (i = my = ty = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
  		if (i < m->nmaster) {
  			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
@@ -371,7 +408,18 @@ index f1d86b2..ddd45a8 100644
  			if (my + HEIGHT(c) < m->wh)
  				my += HEIGHT(c);
  		} else {
-@@ -1915,7 +2047,10 @@ updategeom(void)
+@@ -1799,6 +1938,10 @@ unmanage(Client *c, int destroyed)
+ 	focus(NULL);
+ 	updateclientlist();
+ 	arrange(m);
++	if (c->switchtotag) {
++		Arg a = { .ui = c->switchtotag };
++		view(&a);
++	}
+ }
+ 
+ void
+@@ -1915,7 +2058,10 @@ updategeom(void)
  				m->clients = c->next;
  				detachstack(c);
  				c->mon = mons;
@@ -383,7 +431,7 @@ index f1d86b2..ddd45a8 100644
  				attachstack(c);
  			}
  			if (m == selmon)
-@@ -2062,6 +2197,18 @@ view(const Arg *arg)
+@@ -2062,6 +2208,18 @@ view(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -402,7 +450,7 @@ index f1d86b2..ddd45a8 100644
  Client *
  wintoclient(Window w)
  {
-@@ -2158,6 +2305,7 @@ main(int argc, char *argv[])
+@@ -2158,6 +2316,7 @@ main(int argc, char *argv[])
  		die("pledge");
  #endif /* __OpenBSD__ */
  	scan();
